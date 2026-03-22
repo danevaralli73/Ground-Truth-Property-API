@@ -5,6 +5,7 @@ from typing import List
 from fastapi import FastAPI, HTTPException, status, Security
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security.api_key import APIKeyHeader
+from fastapi.responses import HTMLResponse
 from pydantic import BaseModel, Field
 
 # ==========================================
@@ -25,34 +26,86 @@ app.add_middleware(
 )
 
 # ==========================================
-# 2. BILLING & SECURITY (The Tollbooth)
+# 2. OFFICIAL WEBSITE FRONTEND (For Stripe & Developers)
 # ==========================================
-# Configure your live Stripe API key (In production, use Render Environment Variables)
-stripe.api_key = os.getenv("STRIPE_SECRET_KEY", "sk_test_replace_me_with_stripe_key")
+@app.get("/", tags=["Website"], response_class=HTMLResponse)
+async def serve_homepage():
+    """Serves the official business landing page required by Stripe."""
+    html_content = """
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>GroundTruth Property API | The Verification Layer for AI</title>
+        <style>
+            body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 0; background-color: #0d1117; color: #c9d1d9; line-height: 1.6; }
+            header { padding: 40px 20px; text-align: center; border-bottom: 1px solid #30363d; }
+            h1 { font-size: 2.5rem; color: #58a6ff; margin-bottom: 10px; }
+            p.subtitle { font-size: 1.2rem; color: #8b949e; max-width: 600px; margin: 0 auto; }
+            .container { max-width: 900px; margin: 40px auto; padding: 0 20px; }
+            .feature-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-top: 40px; }
+            .feature-card { background: #161b22; border: 1px solid #30363d; padding: 20px; border-radius: 8px; }
+            .feature-card h3 { color: #f0f6fc; margin-top: 0; }
+            .btn { display: inline-block; background-color: #238636; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; margin-top: 20px; transition: 0.2s; }
+            .btn:hover { background-color: #2ea043; }
+            footer { text-align: center; padding: 40px 20px; margin-top: 60px; border-top: 1px solid #30363d; font-size: 0.9rem; color: #8b949e; }
+        </style>
+    </head>
+    <body>
+        <header>
+            <h1>GroundTruth Property API</h1>
+            <p class="subtitle">The enterprise verification layer for AI insurance agents. Validate contractor bids, enforce O&P compliance, and detect price gouging in milliseconds.</p>
+            <a href="/docs" class="btn">View API Documentation</a>
+        </header>
+        
+        <div class="container">
+            <h2>Built for the B2A (Business-to-Agent) Economy</h2>
+            <p>GroundTruth provides AI agents and enterprise developers with programmatic access to strict, localized property estimating logic. Don't let your AI hallucinate repair costs—validate them against industry standards.</p>
+            
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <h3>⚡ Millisecond Validation</h3>
+                    <p>Send JSON contractor bids and receive instant fair-market-value calculations and variance percentages.</p>
+                </div>
+                <div class="feature-card">
+                    <h3>🛡️ Fraud Detection</h3>
+                    <p>Automatically flags line items that exceed localized maximum allowable limits (e.g., premium shingles, excessive tear-off rates).</p>
+                </div>
+                <div class="feature-card">
+                    <h3>📋 O&P Compliance</h3>
+                    <p>Enforces strict rules for Overhead & Profit application on low-complexity, single-trade claims.</p>
+                </div>
+            </div>
+        </div>
 
-# We expect the AI agent to send an 'X-API-Key' in the header
+        <footer>
+            <p>&copy; 2026 GroundTruth Property Validation.</p>
+            <p><strong>Contact & Support:</strong> danevaralli@gmail.com</p>
+            <p>Pricing: Metered Billing at $0.15 per API Validation Request.</p>
+        </footer>
+    </body>
+    </html>
+    """
+    return HTMLResponse(content=html_content)
+
+# ==========================================
+# 3. BILLING & SECURITY (The Tollbooth)
+# ==========================================
+stripe.api_key = os.getenv("STRIPE_SECRET_KEY", "sk_test_replace_me_with_stripe_key")
 API_KEY_NAME = "X-API-Key"
 api_key_header = APIKeyHeader(name=API_KEY_NAME, auto_error=False)
 
 def verify_api_key_and_charge(api_key: str = Security(api_key_header)):
-    """
-    Security function that runs before the core logic.
-    It checks the AI's API key and bills their Stripe account for 1 usage credit.
-    """
     if not api_key:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Missing API Key. Please provide an X-API-Key header to access this service."
         )
 
-    # In a real business, you would map this 'api_key' to a specific customer's Stripe Subscription Item ID.
-    # For this demo, we assume the API key provided IS their Stripe Subscription Item ID.
     subscription_item_id = api_key
-
-    # Only attempt to charge if we have a real Stripe key configured
     if "replace_me" not in stripe.api_key:
         try:
-            # Tell Stripe to charge this customer for 1 API call ($0.15)
             stripe.SubscriptionItem.create_usage_record(
                 subscription_item_id,
                 quantity=1,
@@ -63,14 +116,10 @@ def verify_api_key_and_charge(api_key: str = Security(api_key_header)):
                 status_code=status.HTTP_402_PAYMENT_REQUIRED,
                 detail=f"Billing failed or invalid API Key: {str(e)}"
             )
-    else:
-        # Mock mode if Stripe keys aren't set up yet
-        pass
-
     return api_key
 
 # ==========================================
-# 3. DATA SCHEMAS (The Strict "Contract" for AIs)
+# 4. DATA SCHEMAS
 # ==========================================
 class LineItem(BaseModel):
     description: str = Field(..., description="The Xactimate or custom line item description")
@@ -92,7 +141,7 @@ class ValidationResult(BaseModel):
     processing_time_ms: float
 
 # ==========================================
-# 4. ENDPOINTS
+# 5. ENDPOINTS
 # ==========================================
 @app.get("/health", tags=["System"])
 async def health_check():
@@ -101,17 +150,11 @@ async def health_check():
 @app.post("/validate-bid", response_model=ValidationResult, tags=["Core AI Services"])
 async def validate_contractor_bid(
     bid: ContractorBid, 
-    api_key: str = Security(verify_api_key_and_charge) # The Tollbooth is applied here!
+    api_key: str = Security(verify_api_key_and_charge)
 ):
-    """
-    **The core B2A endpoint.**
-    AI Agents send a POST request here with the contractor's bid.
-    Our system runs proprietary localized estimator logic and returns structured, actionable data.
-    """
     start_time = time.time()
     flagged = []
     
-    # --- PROPRIETARY ESTIMATOR LOGIC ---
     if bid.includes_o_and_p and len(bid.line_items) <= 2:
         flagged.append("POLICY ALERT: Overhead & Profit (O&P) included on low-complexity/single-trade claim.")
     
