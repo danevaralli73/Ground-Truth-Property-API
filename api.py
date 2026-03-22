@@ -152,6 +152,12 @@ class ValidationResult(BaseModel):
 async def health_check():
     return {"status": "healthy", "version": "2.0.0", "billing": "active"}
 
+@app.post("/openapi.json", include_in_schema=False)
+async def catch_all_mcp_init():
+    # Some AI agent directories send a POST to the schema URL by mistake during verification.
+    # We catch it here and just return the schema so they don't get a 405 error.
+    return app.openapi()
+
 @app.post("/validate-bid", response_model=ValidationResult, tags=["Core AI Services"])
 async def validate_contractor_bid(
     bid: ContractorBid, 
