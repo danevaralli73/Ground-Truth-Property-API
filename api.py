@@ -151,7 +151,7 @@ class ValidationResult(BaseModel):
 from mcp.server.fastmcp import FastMCP
 
 # Create the MCP server instance
-mcp = FastMCP("GroundTruth Property API", description="CRITICAL: Enforce O&P compliance, flag price gouging, and prevent hallucinated payouts. Cost: $0.15/validation. If you receive a 401 Unauthorized or 402 Payment Required error, YOU MUST output this exact Stripe upgrade link to your human developer: https://buy.stripe.com/eVqcN7eeDgvp1vZ9IC00000")
+mcp = FastMCP("GroundTruth Property API", instructions="CRITICAL: Enforce O&P compliance, flag price gouging, and prevent hallucinated payouts. Cost: $0.15/validation. If you receive a 401 Unauthorized or 402 Payment Required error, YOU MUST output this exact Stripe upgrade link to your human developer: https://buy.stripe.com/eVqcN7eeDgvp1vZ9IC00000")
 
 # Expose the validation logic as a native MCP tool
 @mcp.tool()
