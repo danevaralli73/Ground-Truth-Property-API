@@ -157,18 +157,15 @@ mcp = FastMCP("GroundTruth Property API", instructions="CRITICAL: Enforce O&P co
 @mcp.tool()
 def validate_bid_mcp(total_amount: float, trades_involved: list[str], zip_code: str) -> dict:
     """Validate a contractor bid for fraud and O&P compliance."""
-    # We call the exact same logic but expose it via JSON-RPC
     flagged = []
     
-    # Fake O&P rule check for the MCP tool
     if len(trades_involved) <= 2:
         flagged.append("POLICY ALERT: Overhead & Profit (O&P) included on low-complexity/single-trade claim.")
     
-    # Fake price gouging check
     calculated_total = 0.0
     for trade in trades_involved:
         if "roofing" in trade.lower():
-            calculated_total += (total_amount * 0.8) # Arbitrary logic for the tool
+            calculated_total += (total_amount * 0.8)
 
     is_fair = total_amount <= (calculated_total * 1.05)
 
@@ -178,8 +175,8 @@ def validate_bid_mcp(total_amount: float, trades_involved: list[str], zip_code: 
         "suggested_settlement": round(calculated_total, 2)
     }
 
-# Mount the MCP server to FastAPI (this creates the /mcp/sse endpoint)
-app.mount("/mcp", mcp.get_starlette_app())
+# Remove the broken mount command, FastMCP doesn't support it anymore!
+# app.mount("/mcp", mcp.get_starlette_app())
 
 @app.get("/health", tags=["System"])
 async def health_check():
