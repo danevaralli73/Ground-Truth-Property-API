@@ -179,7 +179,7 @@ def validate_bid_mcp(total_amount: float, trades_involved: list[str], zip_code: 
     }
 
 # Mount the MCP server to FastAPI (this creates the /mcp/sse endpoint)
-app.mount("/mcp", mcp.get_asgi_app())
+app.mount("/mcp", mcp.get_starlette_app())
 
 @app.get("/health", tags=["System"])
 async def health_check():
